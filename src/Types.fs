@@ -11,7 +11,7 @@ type ErrorReason =
     | BadField of string * JsonValue
     | BadPath of string * JsonValue * string
     | TooSmallArray of string * JsonValue
-    | FailMessage of string
+    | FailMessage of string * JsonValue
     | BadOneOf of string list
 
 type CaseStrategy =

@@ -72,8 +72,8 @@ module Decode =
                 "Expecting " + msg + ".\n" + (Helpers.anyToString value)
             | BadOneOf messages ->
                 "The following errors were found:\n\n" + String.concat "\n\n" messages
-            | FailMessage msg ->
-                "The following `failure` occurred with the decoder: " + msg
+            | FailMessage (msg, value) ->
+                "The following `failure` occurred with the decoder: " + msg + "\n" + (Helpers.anyToString value)
 
         match error with
         | BadOneOf _ ->
@@ -528,8 +528,8 @@ module Decode =
             Ok output
 
     let fail (msg: string) : Decoder<'a> =
-        fun path _ ->
-            (path, FailMessage msg) |> Error
+        fun path token ->
+            (path, FailMessage(msg, token)) |> Error
 
     let andThen (cb: 'a -> Decoder<'b>) (decoder : Decoder<'a>) : Decoder<'b> =
         fun path value ->
@@ -987,8 +987,7 @@ module Decode =
 
     let private mixedArray msg (decoders: BoxedDecoder[]) (path: string) (values: JsonValue[]): Result<obj list, DecoderError> =
         if decoders.Length <> values.Length then
-            (path, sprintf "Expected %i %s but got %i" decoders.Length msg values.Length
-            |> FailMessage) |> Error
+            (path, FailMessage(sprintf "Expected %i %s but got %i" decoders.Length msg values.Length, JArray(values))) |> Error
         else
             (values, decoders, Ok [])
             |||> Array.foldBack2 (fun value decoder acc ->
@@ -1138,7 +1137,7 @@ module Decode =
             )
 
         match uci with
-        | None -> (path, FailMessage("Cannot find case " + searchedName + " in " + t.FullName)) |> Error
+        | None -> (path, FailMessage("Cannot find case " + searchedName + " in " + t.FullName, JArray(values))) |> Error
         | Some uci ->
             if values.Length = 0 then
                 FSharpValue.MakeUnion(uci, [||], allowAccessToPrivateRepresentation=true) |> Ok
